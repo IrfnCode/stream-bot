@@ -61,6 +61,8 @@ export async function startVideoStream(guildId, channelId, videoUrl, title = "Mo
       args: [
         '--no-sandbox', 
         '--disable-setuid-sandbox', 
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
         '--autoplay-policy=no-user-gesture-required',
         '--auto-select-desktop-capture-source=Film Player',
         '--enable-usermedia-screen-capturing',
