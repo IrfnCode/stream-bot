@@ -63,6 +63,9 @@ export async function startVideoStream(guildId, channelId, videoUrl, title = "Mo
         '--disable-setuid-sandbox', 
         '--disable-dev-shm-usage',
         '--disable-gpu',
+        '--lang=en-US',
+        '--use-fake-ui-for-media-stream',
+        '--use-fake-device-for-media-stream',
         '--autoplay-policy=no-user-gesture-required',
         '--auto-select-desktop-capture-source=Film Player',
         '--enable-usermedia-screen-capturing',
@@ -70,6 +73,10 @@ export async function startVideoStream(guildId, channelId, videoUrl, title = "Mo
         '--start-maximized'
       ]
     });
+
+    // Auto-grant permissions for Discord
+    const context = browser.defaultBrowserContext();
+    await context.overridePermissions('https://discord.com', ['microphone', 'camera']);
 
     activeStreamCommand.set(guildId, { browser });
 
@@ -163,7 +170,7 @@ export async function startVideoStream(guildId, channelId, videoUrl, title = "Mo
       let clickedShare = false;
       for (let i = 0; i < 15; i++) { // Coba terus selama 15 detik
         clickedShare = await discordPage.evaluate(() => {
-          const buttons = Array.from(document.querySelectorAll('button'));
+          const buttons = Array.from(document.querySelectorAll('button, [role="button"]'));
           const shareBtn = buttons.find(b => {
             const label = b.getAttribute('aria-label') || '';
             const l = label.toLowerCase();
@@ -242,6 +249,7 @@ export async function startVideoStream(guildId, channelId, videoUrl, title = "Mo
 
     } catch (e) {
       console.error(`[WebRTC Automation] Gagal menavigasi UI Discord:`, e.message);
+      throw e;
     }
 
   } catch (error) {
