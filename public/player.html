@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Film Player</title>
+  <style>
+    body { 
+      margin: 0; 
+      background: black; 
+      overflow: hidden; 
+      width: 100vw; 
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    video { 
+      width: 100%; 
+      height: 100%; 
+      object-fit: contain; 
+    }
+    ::cue {
+      color: #FFFF00;
+      font-size: 26px;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      text-shadow: 2px 2px 4px #000000, -2px -2px 4px #000000, 2px -2px 4px #000000, -2px 2px 4px #000000, 0px 4px 8px rgba(0,0,0,0.8);
+      background: rgba(0, 0, 0, 0.3);
+    }
+    #loading {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.9);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: sans-serif;
+      z-index: 10;
+    }
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+</head>
+<body>
+  <div id="loading">
+    <div class="spinner"></div>
+    <h2 id="loadingText">Mengambil Data Film...</h2>
+  </div>
+  <video id="video" autoplay></video>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const videoSrc = urlParams.get('url');
+    const subSrc = urlParams.get('sub');
+    const video = document.getElementById('video');
+    const loading = document.getElementById('loading');
+    const loadingText = document.getElementById('loadingText');
+    
+    // Kelola Loading Screen
+    video.addEventListener('canplay', () => {
+      loading.style.display = 'none';
+    });
+    video.addEventListener('playing', () => {
+      loading.style.display = 'none';
+    });
+    video.addEventListener('waiting', () => {
+      loading.style.display = 'flex';
+      loadingText.innerText = "Buffering...";
+    });
+    video.addEventListener('error', () => {
+      loadingText.innerText = "Gagal memutar video. Silakan coba kualitas lain.";
+      loadingText.style.color = "red";
+      document.querySelector('.spinner').style.display = 'none';
+    });
+    
+    // Inject Subtitle jika ada
+    if (subSrc) {
+        const track = document.createElement('track');
+        track.kind = 'captions';
+        track.label = 'Subtitle';
+        // Gunakan proxy lokal agar kebal CORS!
+        track.src = `/proxy-sub?url=${encodeURIComponent(subSrc)}`;
+        track.srclang = 'id';
+        track.default = true;
+        video.appendChild(track);
+    }
+    
+    // Matikan suara terlebih dahulu untuk mengakali proteksi Autoplay di browser
+    video.muted = false;
+    
+    if (Hls.isSupported() && videoSrc.includes('.m3u8')) {
+      const hls = new Hls();
+      hls.loadSource(videoSrc);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, function() {
+        video.play().catch(e => console.error("Autoplay prevented:", e));
+      });
+    } else {
+      video.src = videoSrc;
+      video.play().catch(e => console.error("Autoplay prevented:", e));
+    }
+  </script>
+</body>
+</html>
