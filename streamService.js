@@ -115,7 +115,10 @@ export async function startVideoStream(guildId, channelId, videoUrl, title = "Mo
       };
     });
     
-    await discordPage.goto('https://discord.com/login');
+    await discordPage.goto('https://discord.com/login', {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
     
     // Injeksi Token Discord
     await discordPage.evaluate((t) => {
@@ -127,7 +130,10 @@ export async function startVideoStream(guildId, channelId, videoUrl, title = "Mo
     await delay(1000);
     
     console.log(`[WebRTC Automation] Masuk ke Voice Channel...`);
-    await discordPage.goto(`https://discord.com/channels/${guildId}/${channelId}`);
+    await discordPage.goto(`https://discord.com/channels/${guildId}/${channelId}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
     
     // Beri waktu 15 detik agar Vencord selesai memuat dan membobol file inti Discord (Webpack)
     await delay(15000);
@@ -240,6 +246,21 @@ export async function startVideoStream(guildId, channelId, videoUrl, title = "Mo
 
   } catch (error) {
     console.error("Error during playback:", error);
+    if (activeStreamCommand.has(guildId)) {
+      try {
+        const { browser } = activeStreamCommand.get(guildId);
+        const pages = await browser.pages();
+        for (let i = 0; i < pages.length; i++) {
+          const pageTitle = await pages[i].title().catch(() => `Page_${i}`);
+          const cleanTitle = pageTitle.replace(/[^a-zA-Z0-9]/g, '_');
+          const ssPath = `error_screenshot_${i}_${cleanTitle}.png`;
+          await pages[i].screenshot({ path: ssPath }).catch(console.error);
+          console.log(`[Debug] Screenshot halaman ${i} disimpan ke: ${ssPath}`);
+        }
+      } catch (err) {
+        console.error("Gagal mengambil screenshot error:", err.message);
+      }
+    }
     streamErrors.set(guildId, error.message);
     stopVideoStream(guildId);
     throw error;
